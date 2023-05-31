@@ -83,4 +83,41 @@ public class ParticipantDao {
         }
 
     }
+
+    public static boolean savePresence(String guid, List<Boolean> presence) {
+        if (presence.size()!=3)
+            return false;
+
+        try (Connection con = DataSource.getConnection();
+             PreparedStatement ps = con.prepareStatement("UPDATE participants SET present_slot_1 = ?, present_slot_2=?, present_slot_3=? WHERE id=?");
+        ) {
+            ps.setInt(1, presence.get(0) ? 1 : 0);
+            ps.setInt(2, presence.get(1) ? 1 : 0);
+            ps.setInt(3, presence.get(2) ? 1 : 0);
+            ps.setString(4, guid);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    public static List<Boolean> loadPresence(String guid) {
+        try (Connection conn = DataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT present_slot_1, present_slot_2, present_slot_3 FROM participants WHERE id = ?")) {
+            ps.setString(1, guid);
+            ResultSet rs = ps.executeQuery();
+            ArrayList<Boolean> presence = new ArrayList<>();
+            if (rs.next()) {
+                presence.add(rs.getInt(1) == 1);
+                presence.add(rs.getInt(2) == 1);
+                presence.add(rs.getInt(3) == 1);
+            }
+            return presence;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
 }

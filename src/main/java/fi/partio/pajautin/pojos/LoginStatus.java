@@ -7,6 +7,10 @@ public class LoginStatus {
     String status;
     Participant participant;
 
+    public LoginStatus() {
+
+    }
+
     public String getStatus() {
         return status;
     }

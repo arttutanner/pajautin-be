@@ -12,6 +12,7 @@ import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.Context;
 
+import jakarta.ws.rs.core.MediaType;
 import org.glassfish.grizzly.http.server.Request;
 import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.Session;
@@ -35,7 +36,7 @@ public class ClientApi {
 
 
     @POST
-    @Produces("application/json")
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/login")
     public LoginStatus register(String id) {
 
@@ -55,16 +56,10 @@ public class ClientApi {
 
     }
 
-    @GET
-    @Produces("application/json")
-    @Path("/do")
-    public String doSomething() {
-        return "{\"guid\":\""+getGUID()+"\"}";
-    }
 
 
     @GET
-    @Produces("application/json")
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/preferences")
     public List<Integer> getPreferredWorkshopIdList() throws SQLException {
         System.out.println("Save prefs:"+getGUID());
@@ -74,7 +69,7 @@ public class ClientApi {
     }
 
     @POST
-    @Produces("application/json")
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/preferences")
     public SaveStatus savePreferences(List<Integer> preferences) throws SQLException {
         if (ParticipantDao.savePreferences(getGUID(),preferences))
@@ -83,12 +78,28 @@ public class ClientApi {
             return new SaveStatus("error");
     }
 
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/presence")
+    public SaveStatus savePresence(List<Boolean> presence) throws SQLException {
+        if (ParticipantDao.savePresence(getGUID(),presence))
+            return new SaveStatus("ok");
+        else
+            return new SaveStatus("error");
+    }
+
     @GET
-    @Produces("application/json")
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/presence")
+    public List<Boolean> getPresence() throws SQLException {
+        return ParticipantDao.loadPresence(getGUID());
+    }
+
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
     @Path("/logout")
     public LoginStatus logout() {
         Session session = request.getSession();
-        session.setAttribute("guid",null);
         session.setValid(false);
         LoginStatus loginStatus = new LoginStatus();
         loginStatus.setStatus("logged_out");

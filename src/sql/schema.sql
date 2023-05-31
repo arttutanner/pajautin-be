@@ -12,6 +12,9 @@ create table program_preferences
     participant_id char(36),
     workshop_id    int,
     pref_order     int,
+    present_slot_1 int not null default 1,
+    present_slot_2 int not null default 1,
+    present_slot_3 int not null default 1,
     primary key (id),
     foreign key (participant_id) references participants (id) on delete cascade,
     index (participant_id, workshop_id, pref_order)

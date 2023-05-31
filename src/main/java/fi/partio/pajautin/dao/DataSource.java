@@ -15,6 +15,7 @@ public class DataSource {
     private static HikariConfig config = new HikariConfig();
     private static HikariDataSource ds;
 
+    public static Properties properties;
 
     private DataSource() {
     }
@@ -53,8 +54,10 @@ public class DataSource {
 
     }
 
-    private static Properties getProperties() throws IOException {
-        Properties properties = new Properties();
+    public static Properties getProperties() throws IOException {
+        if (properties != null) return properties;
+
+        properties = new Properties();
         properties.load(new FileInputStream("pajautin.properties"));
         return properties;
     }
