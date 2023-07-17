@@ -1,6 +1,7 @@
 
 package fi.partio.pajautin.rest;
 
+import fi.partio.pajautin.dao.DataSource;
 import fi.partio.pajautin.dao.ParticipantDao;
 import fi.partio.pajautin.pojos.LoginStatus;
 import fi.partio.pajautin.pojos.Participant;
@@ -26,7 +27,8 @@ import java.util.List;
 @Path("/api")
 public class ClientApi {
 
-    @Inject Request request;
+    @Inject
+    Request request;
 
     @GET
     @Produces("text/plain")
@@ -40,7 +42,7 @@ public class ClientApi {
     @Path("/login")
     public LoginStatus register(String id) {
 
-        System.out.println("Login:"+id);
+        System.out.println("Login:" + id);
 
         LoginStatus loginStatus = new LoginStatus();
         Participant participant = ParticipantDao.getParticipant(id);
@@ -48,8 +50,7 @@ public class ClientApi {
             setGUID(participant.getId());
             loginStatus.setStatus("ok");
             loginStatus.setParticipant(participant);
-        }
-        else {
+        } else {
             loginStatus.setStatus("not_found");
         }
         return loginStatus;
@@ -57,22 +58,32 @@ public class ClientApi {
     }
 
 
-
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/preferences")
     public List<Integer> getPreferredWorkshopIdList() throws SQLException {
-        System.out.println("Save prefs:"+getGUID());
+        System.out.println("Save prefs:" + getGUID());
         System.out.println(request.getSession().getIdInternal());
-        System.out.println("guid"+request.getSession().getAttribute("guid"));
+        System.out.println("guid" + request.getSession().getAttribute("guid"));
         return ParticipantDao.loadPreferences(getGUID());
     }
+
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/preferences")
     public SaveStatus savePreferences(List<Integer> preferences) throws SQLException {
-        if (ParticipantDao.savePreferences(getGUID(),preferences))
+
+        // check if read_only property is set
+        try {
+            if (DataSource.getProperties().getProperty("pajautin_read_only").equals("true")) {
+                return new SaveStatus("error");
+            }
+        } catch (Exception e) {
+            // do nothing
+        }
+
+        if (ParticipantDao.savePreferences(getGUID(), preferences))
             return new SaveStatus("ok");
         else
             return new SaveStatus("error");
@@ -82,7 +93,17 @@ public class ClientApi {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/presence")
     public SaveStatus savePresence(List<Boolean> presence) throws SQLException {
-        if (ParticipantDao.savePresence(getGUID(),presence))
+        // check if read_only property is set
+        try {
+            if (DataSource.getProperties().getProperty("pajautin_read_only").equals("true")) {
+                return new SaveStatus("error");
+            }
+        } catch (Exception e) {
+            // do nothing
+        }
+
+
+        if (ParticipantDao.savePresence(getGUID(), presence))
             return new SaveStatus("ok");
         else
             return new SaveStatus("error");
@@ -94,6 +115,15 @@ public class ClientApi {
     public List<Boolean> getPresence() throws SQLException {
         return ParticipantDao.loadPresence(getGUID());
     }
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/registration")
+    public List<Integer> getRegistration() throws SQLException {
+        return ParticipantDao.loadProgramRegistration(getGUID());
+    }
+
+
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)
@@ -108,12 +138,12 @@ public class ClientApi {
 
     private String getGUID() {
         Session session = request.getSession();
-        return (String)session.getAttribute("guid");
+        return (String) session.getAttribute("guid");
     }
 
     private void setGUID(String guid) {
         Session session = request.getSession();
-        session.setAttribute("guid",guid);
+        session.setAttribute("guid", guid);
     }
 
 }

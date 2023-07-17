@@ -27,3 +27,33 @@ create table event_log (
     payload varchar(1000),
     primary key (id)
 );
+
+CREATE TABLE participant_registration (
+    id int not null auto_increment,
+    participant_id char(36) not null,
+    program_id int,
+    slot enum('1','2','3') not null,
+    primary key (id),
+    index (participant_id, program_id)
+);
+
+
+CREATE TABLE program (
+     id INT PRIMARY KEY,
+     name text NOT NULL,
+     description text,
+     author text,
+     keywords text,
+     type INT,
+     maxSize INT,
+     minSize INT,
+     roverRecommended BOOLEAN,
+     availableSlots INT,
+     countinueInSlot varchar(2),
+     slot1 BOOLEAN,
+     slot2 BOOLEAN,
+     slot3 BOOLEAN,
+     act1 BOOLEAN,
+     act2 BOOLEAN,
+     act3 BOOLEAN
+);

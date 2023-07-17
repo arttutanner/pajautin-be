@@ -8,11 +8,14 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.Charset;
+import java.util.List;
+import java.util.Map;
 
 public class SheetGrabber {
 
     public static int grab(String url, String outFile) {
 
+        Map<Integer, List<Boolean>> programActiveStatus = ProgramDao.getProgramActiveStatus();
 
         try {
             JSONObject json = getJson(new URL(url));
@@ -31,6 +34,18 @@ public class SheetGrabber {
                     count ++;
                     output.put(obj);
                 }
+                try {
+                    Integer programId = Integer.parseInt(obj.get("id").toString());
+                    if (programActiveStatus != null && programActiveStatus.containsKey(programId)) {
+                        List<Boolean> activeStatus = programActiveStatus.get(programId);
+                        obj.put("act1", activeStatus.get(0));
+                        obj.put("act2", activeStatus.get(1));
+                        obj.put("act3", activeStatus.get(2));
+                    }
+                }
+                catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
             System.out.println(output.toString(2)); // pretty print
@@ -39,6 +54,7 @@ public class SheetGrabber {
             return count;
 
         } catch (IOException e) {
+            e.printStackTrace();
             throw new RuntimeException(e);
         }
 

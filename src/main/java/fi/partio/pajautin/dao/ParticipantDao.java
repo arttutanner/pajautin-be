@@ -7,7 +7,9 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ParticipantDao {
 
@@ -120,4 +122,24 @@ public class ParticipantDao {
             return null;
         }
     }
+
+    public static List<Integer> loadProgramRegistration(String guid) {
+        try (Connection conn = DataSource.getConnection();
+            PreparedStatement ps = conn.prepareStatement("SELECT slot,program_id FROM participant_registration WHERE participant_id = ?")) {
+            ps.setString(1, guid);
+            ResultSet rs = ps.executeQuery();
+            ArrayList<Integer> programRegistration = new ArrayList<>();
+            programRegistration.add(null);
+            programRegistration.add(null);
+            programRegistration.add(null);
+            while (rs.next()) {
+                programRegistration.set(rs.getInt(1)-1, rs.getInt(2));
+            }
+            return programRegistration;
+    } catch (SQLException e) {
+        e.printStackTrace();
+        return null;
+    }
+    }
+
 }

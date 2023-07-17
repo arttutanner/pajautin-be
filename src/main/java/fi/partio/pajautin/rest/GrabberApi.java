@@ -19,6 +19,7 @@ public class GrabberApi {
         try {
             return SheetGrabber.grab(DataSource.getProperties().getProperty("sheet.url"), DataSource.getProperties().getProperty("sheet.outfile")) + " rows grabbed.";
         } catch (Exception e) {
+            e.printStackTrace();
             return e.getMessage();
         }
     }
