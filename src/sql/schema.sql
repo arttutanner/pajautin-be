@@ -33,9 +33,13 @@ CREATE TABLE participant_registration (
     participant_id char(36) not null,
     program_id int,
     slot enum('1','2','3') not null,
+    registration_time timestamp default current_timestamp,
     primary key (id),
     index (participant_id, program_id)
 );
+
+CREATE UNIQUE INDEX participant_unique_slot
+    ON participant_registration (participant_id,  slot);
 
 
 CREATE TABLE program (
@@ -57,3 +61,22 @@ CREATE TABLE program (
      act2 BOOLEAN,
      act3 BOOLEAN
 );
+
+delimiter //
+CREATE TRIGGER pr_reg_check_limit
+    BEFORE INSERT
+    ON participant_registration
+    FOR EACH ROW
+BEGIN
+    IF ( SELECT COUNT(*)
+         FROM participant_registration
+         WHERE program_id = NEW.program_id AND slot = NEW.slot)
+                                          > ( SELECT maxSize - 1
+                                           FROM program
+                                           WHERE id = NEW.program_id ) THEN
+        SIGNAL SQLSTATE '45000'
+        SET MESSAGE_TEXT = 'Maximum number of participants reached for this program.';
+    END IF;
+END
+//
+delimiter ;

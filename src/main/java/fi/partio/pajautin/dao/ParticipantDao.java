@@ -87,7 +87,7 @@ public class ParticipantDao {
     }
 
     public static boolean savePresence(String guid, List<Boolean> presence) {
-        if (presence.size()!=3)
+        if (presence.size() != 3)
             return false;
 
         try (Connection con = DataSource.getConnection();
@@ -125,7 +125,7 @@ public class ParticipantDao {
 
     public static List<Integer> loadProgramRegistration(String guid) {
         try (Connection conn = DataSource.getConnection();
-            PreparedStatement ps = conn.prepareStatement("SELECT slot,program_id FROM participant_registration WHERE participant_id = ?")) {
+             PreparedStatement ps = conn.prepareStatement("SELECT slot,program_id FROM participant_registration WHERE participant_id = ?")) {
             ps.setString(1, guid);
             ResultSet rs = ps.executeQuery();
             ArrayList<Integer> programRegistration = new ArrayList<>();
@@ -133,13 +133,72 @@ public class ParticipantDao {
             programRegistration.add(null);
             programRegistration.add(null);
             while (rs.next()) {
-                programRegistration.set(rs.getInt(1)-1, rs.getInt(2));
+                programRegistration.set(rs.getInt(1) - 1, rs.getInt(2));
             }
             return programRegistration;
-    } catch (SQLException e) {
-        e.printStackTrace();
-        return null;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
+
+    public static String registerToProgram(String guid, int slot, int programId) {
+
+        // Make sure that participant is not already registered to this slot
+        List<Integer> programRegistration = loadProgramRegistration(guid);
+        if (programRegistration.get(slot - 1) != null) {
+            return "Olet jo ilmoittautunut tämän aikavälin ohjelmaan.";
+        }
+
+        // Make sure that participant is present in the time slot
+        List<Boolean> presence = loadPresence(guid);
+        if (!presence.get(slot - 1)) {
+            return "Olet poissa tällä aikavälillä, et voi ilmoittautua ohjelmaan.";
+        }
+
+        // Make sure that there is room in the program
+        int participantsInProgram = 0;
+        try (Connection conn = DataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT COUNT(*) FROM participant_registration as p WHERE slot = ? AND program_id = ?")) {
+            ps.setInt(1, slot);
+            ps.setInt(2, programId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                participantsInProgram = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return "Tietokantavirhe.";
+        }
+
+        try(Connection conn = DataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement("SELECT maxSize FROM program WHERE id = ?")) {
+            ps.setInt(1, programId);
+            ResultSet rs = ps.executeQuery();
+            if (rs.next()) {
+                int maxParticipants = rs.getInt(1);
+                if (participantsInProgram >= maxParticipants) {
+                    return "Valitsemasi ohjelma on täynnä (joku ehti ilmoittautua tässä välissä).";
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return "Tietokantavirhe.";
+        }
+
+
+        try (Connection con = DataSource.getConnection();
+             PreparedStatement ps = con.prepareStatement("INSERT INTO participant_registration (participant_id, slot, program_id) VALUES (?,?,?)");
+        ) {
+            ps.setString(1, guid);
+            ps.setInt(2, slot);
+            ps.setInt(3, programId);
+            ps.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return "Tietokantavirhe.";
+        }
+        return null;
     }
 
 }

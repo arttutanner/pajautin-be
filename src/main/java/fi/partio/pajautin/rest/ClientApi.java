@@ -3,8 +3,10 @@ package fi.partio.pajautin.rest;
 
 import fi.partio.pajautin.dao.DataSource;
 import fi.partio.pajautin.dao.ParticipantDao;
+import fi.partio.pajautin.dao.ProgramDao;
 import fi.partio.pajautin.pojos.LoginStatus;
 import fi.partio.pajautin.pojos.Participant;
+import fi.partio.pajautin.pojos.Registration;
 import fi.partio.pajautin.pojos.SaveStatus;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
@@ -21,6 +23,7 @@ import org.glassfish.grizzly.http.server.Session;
 import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 
 // The Java class will be hosted at the URI path "/myresource"
@@ -123,6 +126,26 @@ public class ClientApi {
         return ParticipantDao.loadProgramRegistration(getGUID());
     }
 
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/program/registration")
+    public Map<Integer,List<Integer>> getProgramRegistration() throws SQLException {
+        return ProgramDao.getParticipantCount();
+    }
+
+    @POST
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/registration")
+    public SaveStatus registerToProgram(Registration reg) throws SQLException {
+
+        String ret =ParticipantDao.registerToProgram(getGUID(), reg.getSlot(),reg.getProgramId());
+        if (ret==null) {
+            return new SaveStatus("ok");
+        }
+        else {
+            return new SaveStatus("error",ret);
+        }
+    }
 
 
     @POST
