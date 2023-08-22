@@ -4,10 +4,7 @@ package fi.partio.pajautin.rest;
 import fi.partio.pajautin.dao.DataSource;
 import fi.partio.pajautin.dao.ParticipantDao;
 import fi.partio.pajautin.dao.ProgramDao;
-import fi.partio.pajautin.pojos.LoginStatus;
-import fi.partio.pajautin.pojos.Participant;
-import fi.partio.pajautin.pojos.Registration;
-import fi.partio.pajautin.pojos.SaveStatus;
+import fi.partio.pajautin.pojos.*;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
@@ -21,6 +18,7 @@ import org.glassfish.grizzly.http.server.Response;
 import org.glassfish.grizzly.http.server.Session;
 
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -132,6 +130,18 @@ public class ClientApi {
     public Map<Integer,List<Integer>> getProgramRegistration() throws SQLException {
         return ProgramDao.getParticipantCount();
     }
+
+
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/otherevents")
+    public List<ScheduleEvent> getOtherEvents()  {
+        List<ScheduleEvent> events = new ArrayList<>();
+        events.addAll(ParticipantDao.getJobs(getGUID()));
+        events.addAll(ParticipantDao.getEveningProgram(getGUID()));
+        return events;
+    }
+
 
     @POST
     @Produces(MediaType.APPLICATION_JSON)

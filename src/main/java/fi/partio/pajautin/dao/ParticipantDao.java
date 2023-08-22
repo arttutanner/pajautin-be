@@ -1,15 +1,15 @@
 package fi.partio.pajautin.dao;
 
 import fi.partio.pajautin.pojos.Participant;
+import fi.partio.pajautin.pojos.ScheduleEvent;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.*;
 
 public class ParticipantDao {
 
@@ -142,12 +142,74 @@ public class ParticipantDao {
         }
     }
 
+
+    public static List<ScheduleEvent> getJobs(String guid) {
+        ArrayList<ScheduleEvent> jobs = new ArrayList<>();
+        try (Connection conn = DataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT name, location, description, start_time, additional_info\n" +
+                     "FROM participant_jobs AS pj JOIN jobs AS j ON (pj.job_id = j.id)\n" +
+                     "WHERE pj.participant_id=?")) {
+            ps.setString(1, guid);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                ScheduleEvent job = new ScheduleEvent();
+                job.setTitle("Päivän hyvä työ: "+rs.getString(1));
+                job.setLocation(rs.getString(2));
+                job.setDescription(rs.getString(3));
+                job.setStartTime(convertISODate(rs.getString(4)));
+                job.setAdditionalInfo(rs.getString(5));
+                job.setType("job");
+                jobs.add(job);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+        }
+        return jobs;
+    }
+
+
+    public static List<ScheduleEvent> getEveningProgram(String guid) {
+        ArrayList<ScheduleEvent> eveningPrograms = new ArrayList<>();
+        try (Connection conn = DataSource.getConnection();
+             PreparedStatement ps = conn.prepareStatement(
+                     "SELECT `name`,`description`,`start_time`,`end_time` FROM evening_program WHERE `participant_id`=?")) {
+            ps.setString(1, guid);
+            ResultSet rs = ps.executeQuery();
+
+            while (rs.next()) {
+                ScheduleEvent ep = new ScheduleEvent();
+                ep.setTitle(rs.getString(1));
+                ep.setDescription(rs.getString(2));
+                ep.setStartTime(convertISODate(rs.getString(3)));
+                ep.setEndTime(convertISODate(rs.getString(4)));
+                ep.setType("evening_program");
+                eveningPrograms.add(ep);
+            }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+
+        }
+        return eveningPrograms;
+    }
+
+
     public static String registerToProgram(String guid, int slot, int programId) {
 
         // Make sure that participant is not already registered to this slot
         List<Integer> programRegistration = loadProgramRegistration(guid);
+        boolean swapItem = false;
         if (programRegistration.get(slot - 1) != null) {
-            return "Olet jo ilmoittautunut tämän aikavälin ohjelmaan.";
+            if (programRegistration.get(slot - 1) >= 300) {
+                swapItem = true;
+            } else {
+                return "Olet jo ilmoittautunut tälle aikavälille.";
+            }
+
         }
 
         // Make sure that participant is present in the time slot
@@ -171,7 +233,7 @@ public class ParticipantDao {
             return "Tietokantavirhe.";
         }
 
-        try(Connection conn = DataSource.getConnection();
+        try (Connection conn = DataSource.getConnection();
              PreparedStatement ps = conn.prepareStatement("SELECT maxSize FROM program WHERE id = ?")) {
             ps.setInt(1, programId);
             ResultSet rs = ps.executeQuery();
@@ -186,6 +248,18 @@ public class ParticipantDao {
             return "Tietokantavirhe.";
         }
 
+        // If there was a swap item, remove it
+        if (swapItem) {
+            try (Connection con = DataSource.getConnection();
+                 PreparedStatement ps = con.prepareStatement("DELETE FROM participant_registration WHERE participant_id = ? AND slot = ?")) {
+                ps.setString(1, guid);
+                ps.setInt(2, slot);
+                ps.executeUpdate();
+            } catch (SQLException e) {
+                e.printStackTrace();
+                return "Tietokantavirhe.";
+            }
+        }
 
         try (Connection con = DataSource.getConnection();
              PreparedStatement ps = con.prepareStatement("INSERT INTO participant_registration (participant_id, slot, program_id) VALUES (?,?,?)");
@@ -199,6 +273,18 @@ public class ParticipantDao {
             return "Tietokantavirhe.";
         }
         return null;
+    }
+
+    public static String convertISODate(String mySQLDate) {
+        SimpleDateFormat fromMySQL = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat toISO = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        try {
+            Date date = fromMySQL.parse(mySQLDate);
+            return toISO.format(date);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return null;
+        }
     }
 
 }
